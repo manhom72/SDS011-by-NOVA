@@ -1,13 +1,32 @@
-# OPEN THE SERIAL, RECEIVE DATA AND PRINT IT ON THE SCREEN
+# OPENS THE SERIAL, RECEIVES DATA AND PRINTS IT ON THE SCREEN
+# ADDITIONALY, IT SAVES THE READINGS TO A FILE CALLED file_name
+# BEFORE IT STARTS READING, THE PROGRAM ASKS FOR A LOCATION NAME
+# THIS CAN BE WATHEVER STRING YOU'D LIKE, IT'S ONLY TO WRITE
+# INFORMATION IN THE FILE.
 import serial
 from datetime import datetime
+
+# SET UP VARIABLES
+# this is the name of the port where the CH340 is connected
+# this must be changed according to your needs and OS
+# see README file for more info
 usbport = '/dev/tty.wchusbserial1410'
-ser = serial.Serial(usbport, baudrate=9600, stopbits=1,
-                    parity='N', timeout=None, write_timeout=0)
+
+# name of the file to save the readings
+file_name = "sds011.txt"
+
+# number of measurements
+number_of_measurements = 3
+
+# US - EPA values 
 # ranges in the aqi table for calculation
 table_values_for_pm25_epa = (0,12, 35.4, 55.4, 150.4, 250.4, 350.4, 500.4)
 table_values_for_pm10_epa = (0, 54, 154, 254, 354, 424, 504, 604)
 table_values_for_aqi_epa = (0, 50, 100, 150, 200, 300, 400, 500)
+
+
+ser = serial.Serial(usbport, baudrate=9600, stopbits=1,
+                    parity='N', timeout=None, write_timeout=0)
 
 
 def calculates_aqi(values) -> list:
@@ -78,13 +97,13 @@ def prints_to_file(location, aqi_index_value):
     """Assumes location a description of the location,
        aqi_index_value a list with date and aqi indexes.
        Appends all to a file."""
-    with open('tmp.txt', 'a') as fb:
+    with open(file_name, 'a') as fb:
         print(location, datetime.today(), int(aqi_index_value[0]),
               int(aqi_index_value[1]), file=fb)
 
 
+# STARTING HERE:
 location_name = input('Select a name to identify location:')
-number_of_measurements = 3
 for i in range(number_of_measurements):
     sensor_given_data = read_data_from_sensor()
     print(sensor_given_data)
