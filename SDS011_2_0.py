@@ -66,11 +66,9 @@ def read_data_from_sensor() -> list:
     """Waits until data is received from the sensor.
        Returns a list of integers from the sensor."""
     s = ser.read(10)
-    print(s)
     read_line = []
     for i in s:
         read_line.append(i)
-    print(read_line, type(read_line[0]))
     return read_line
 
 
@@ -78,7 +76,6 @@ def transforms_data_to_measurement(given_data):
     """Assumes given_data a list of integers received from SDS011.
        Returns a list with the measurements in micrograms/m3."""
     pm25_reading = ((given_data[3] * 256 + given_data[2]) / 10)
-    print(given_data[3], given_data[2], pm25_reading)
     pm10_reading = ((given_data[5] * 256 + given_data[4]) / 10)
     measurements = [pm25_reading, pm10_reading]
     print('--> pm2.5: ', pm25_reading,
@@ -106,7 +103,6 @@ def prints_to_file(location, aqi_index_value):
 location_name = input('Select a name to identify location:')
 for i in range(number_of_measurements):
     sensor_given_data = read_data_from_sensor()
-    print(sensor_given_data)
     aqi_measurements = transforms_data_to_measurement(sensor_given_data)
     aqi_index_result = calculates_aqi(aqi_measurements)
     shows_aqi_index(aqi_index_result)
