@@ -226,6 +226,13 @@ def change_working_period():
     print('* WORKING PERIOD CHANGED *')
     show_device_parameters()
 
+    
+def change_working_mode():
+    """Changes the working mode.
+    Returns active mode or query mode."""
+    print('Not yet operational - sorry!')
+    main_menu()
+
 
 def show_device_parameters():
     """Shows the main parameters of the device"""
@@ -261,6 +268,7 @@ def main_menu():
         change_working_period()
     elif choose_action == 3:
         print('You choose to change working mode')
+        change_working_mode()
     elif choose_action == 4:
         print('Exit program!')
         sys.exit()
