@@ -15,7 +15,7 @@ I am almost new to GitHub and not very expecienced yet in programming, and I use
 ## General Info
 This code reads the data from the SDS011 air quality sensor by Nova using UART protocol and transforms the binary data to the US - Environmental Protection Agengy air quality (AQI) values. Those values range from "Good" to "Hazarduous". More information on the index can be found here: https://cfpub.epa.gov/airnow/index.cfm?action=aqibasics.aqi
 
-The device by default will make readings in continuous working mode. According to de datasheet the expected life for the device is arount 8000 hrs. It is not sure than reducing the frequency of the readings will expand life. But I've tried, and this can be done from 0 (continuous) to 30 minutes. The device will make readings for 30 seconds, then sleep for (n * 60 - 30 seconds), where n is the number of minutes.
+The device by default will make readings in continuous working mode. According to the datasheet the expected life for the device is around 8000 hrs. It is not sure that reducing the frequency of the readings will expand life. But I've tried, and this can be done from 0 (continuous) to 30 minutes. The device will make readings for 30 seconds, then sleep for (n * 60 - 30 seconds), where n is the number of minutes.
 
 ## Main Features
 With this program you can:
