@@ -158,7 +158,7 @@ def get_valid_values(value, min_value, max_value):
     try:
         value = int(value)
         print(value, type(value))
-    except:
+    except ValueError:
         print(value, type(value))
         return False
     if value in valid_values:
@@ -198,7 +198,7 @@ def ask_for_values(data_dict):
         selection = input(data_dict['menu_question'])
         try:
             condition = get_valid_values(selection, data_dict['min_value'], data_dict['max_value'])
-        except:
+        except ValueError:
             print('***Something went wrong!')
             print('Choose a valid value from', str(data_dict['min_value']), 'to', str(data_dict['max_value']))
         if condition is True:
@@ -221,7 +221,7 @@ def change_working_period():
     data_for_checksum = string_to_change[:12] + working_minutes + string_to_change[14:]
     new_checksum = checksum_byte_calculator(data_for_checksum)
     new_working_period = data_for_checksum[:-5] + new_checksum + data_for_checksum[-3:]
-    # new_info = send_query_to_sensor(new_working_period)
+    send_query_to_sensor(new_working_period)
     print()
     print('* WORKING PERIOD CHANGED *')
     show_device_parameters()
