@@ -29,7 +29,7 @@ At the time of this update, July 2020 16th, this project has only three files:
   - SDS011_2_0.py: this is the main program, it reads the data using UART protocol and gives values of US - EPA air quality index.
   - deviceC.py: includes classes used by the main program
   - README file.
-  - LICENCE file.
+  - LICENSE file.
 
 ## Technologies
 * The project was created with Python 3,7 version, so I do not know if it actually runs well with previous versions.
