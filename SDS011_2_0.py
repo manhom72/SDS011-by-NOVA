@@ -6,7 +6,7 @@
 import serial
 import sys
 from datetime import datetime
-from home_class import SDS011
+from home_class import SDS011, SDS011Device, EPATable
 
 # SET UP VARIABLES --- VARIABLES TO CHANGE ---
 # this is the name of the port where the CH340 is connected
@@ -18,15 +18,8 @@ usbport = '/dev/tty.wchusbserial1410'
 file_name = "sds011.txt"
 
 # number of measurements
-number_of_measurements = 3
+number_of_measurements = 2
 # ------  END OF VARIABLES TO CHANGE -----
-
-# US - EPA values
-# ranges in the aqi table for calculation
-table_values_for_pm25_epa = (0,12, 35.4, 55.4, 150.4, 250.4, 350.4, 500.4)
-table_values_for_pm10_epa = (0, 54, 154, 254, 354, 424, 504, 604)
-table_values_for_aqi_epa = (0, 50, 100, 150, 200, 300, 400, 500)
-
 
 ser = serial.Serial(usbport, baudrate=9600, stopbits=1,
                     parity='N', timeout=None, write_timeout=0)
@@ -38,8 +31,8 @@ def calculates_aqi(values) -> list:
     # values[0] gives the pm25 in micrograms/m3
     # values[1] gives teh pm10 in micrograms/m3
     pm_index = [0, 0]
-    pm_index[0] = select_from_aqi_table(values[0], table_values_for_pm25_epa, 0.1)
-    pm_index[1] = select_from_aqi_table(values[1], table_values_for_pm10_epa, 1.0)
+    pm_index[0] = select_from_aqi_table(values[0], us_epa_table.get_table_values_for_pm25_epa(), us_epa_table.get_steps_pm25())
+    pm_index[1] = select_from_aqi_table(values[1], us_epa_table.get_table_values_for_pm10_epa(), us_epa_table.get_steps_pm10())
     return pm_index
 
 
@@ -47,19 +40,20 @@ def select_from_aqi_table(average_value: float, current_aqi_table: tuple, increm
     """Chooses the right values from the EPA tables.
        Selects the range for the AQI calculation
        Returns the calculated AQI value."""
-    pair_of_values = [0,0,0,0]      # [ilow, ihigh, clow, chigh] in aqi table & formula
+    pair_of_values = [0, 0, 0, 0]      # [ilow, ihigh, clow, chigh] in aqi table & formula
     i = 0
+    aqi_values_from_table = us_epa_table.get_table_values_for_aqi_epa()
     while average_value >= current_aqi_table[i]:
-            i += 1
+        i += 1
     if i <= 1:
         pair_of_values[-2] = 0
         pair_of_values[0] = 0
     else:
         pair_of_values[-2] = current_aqi_table[i-1] + increment
-        pair_of_values[0] = table_values_for_aqi_epa[i-1] + 1
+        pair_of_values[0] = aqi_values_from_table[i-1] + 1
     pair_of_values[-1] = current_aqi_table[i]
-    pair_of_values[1] = table_values_for_aqi_epa[i]
-    # the following formula returns the aqi value:
+    pair_of_values[1] = aqi_values_from_table[i]
+    # the following formula returns the Air Quality Index:
     aqi_index = (pair_of_values[1] - pair_of_values[0]) * (average_value-pair_of_values[-2]) / (pair_of_values[-1] - pair_of_values[-2]) + pair_of_values[0]
     return aqi_index
 
@@ -69,11 +63,9 @@ def read_data_from_sensor() -> list:
     """Waits until data is received from the sensor.
        Returns a list of integers from the sensor."""
     s = ser.read(10)
-    print(s)
     read_line = []
     for i in s:
         read_line.append(i)
-    print(read_line, type(read_line[0]))
     return read_line
 
 
@@ -81,7 +73,6 @@ def transforms_data_to_measurement(given_data):
     """Assumes given_data a list of integers received from SDS011.
        Returns a list with the measurements in micrograms/m3."""
     pm25_reading = ((given_data[3] * 256 + given_data[2]) / 10)
-    print(given_data[3], given_data[2], pm25_reading)
     pm10_reading = ((given_data[5] * 256 + given_data[4]) / 10)
     measurements = [pm25_reading, pm10_reading]
     print('--> pm2.5: ', pm25_reading,
@@ -111,9 +102,9 @@ def air_quality_index():
     done_measurements = 0
     for i in range(number_of_measurements):
         done_measurements += 1
+        print()
         print('Value', done_measurements, 'of', number_of_measurements,'...')
         sensor_given_data = read_data_from_sensor()
-        print(sensor_given_data)
         aqi_measurements = transforms_data_to_measurement(sensor_given_data)
         aqi_index_result = calculates_aqi(aqi_measurements)
         shows_aqi_index(aqi_index_result)
@@ -146,6 +137,8 @@ def send_query_to_sensor(query: str) -> list:
     ser.write(bytearray.fromhex(query))
     s = ser.read(10)
     resp = bytes_format_converter(s)
+    if type(resp) != list:
+        raise TypeError('Expected a list. Error connecting to device!')
     return resp
 
 
@@ -154,12 +147,9 @@ def get_valid_values(value, min_value, max_value):
     If value is in the range returns True.
     Otherwise returns False."""
     valid_values = [i for i in range(min_value, max_value + 1)]
-    print('Those are my valid values:', valid_values)
     try:
         value = int(value)
-        print(value, type(value))
     except ValueError:
-        print(value, type(value))
         return False
     if value in valid_values:
         return True
@@ -193,8 +183,11 @@ def ask_for_values(data_dict):
     # the dictionary contains the following key/values:
     # min_value, max_value, menu_items, menu_question
     condition = False
+    selection = ''
     while condition is not True:
+        print()
         print_menu_items(data_dict['menu_items'])
+        print()
         selection = input(data_dict['menu_question'])
         try:
             condition = get_valid_values(selection, data_dict['min_value'], data_dict['max_value'])
@@ -210,23 +203,47 @@ def change_working_period():
     """Changes the working period.
     Valid values from 0 to 30 minutes."""
     # WE CREATE A DICTIONARY FOR THE MENU
-    menu_paramteters = {'min_value': 0, 'max_value': 30,
+    menu_parameters = {'min_value': 0, 'max_value': 30,
                         'menu_items': ('-> 0 minutes stands for continuous working mode',
                                        '-> Maximum value is 30 minutes',
                                        '-> It works 30 seconds and sleeps n*60-30 seconds'),
                         'menu_question': 'Choose the new working period between 0 and 30 minutes: '}
-    working_minutes = bytearray(ask_for_values(menu_paramteters).to_bytes(1, 'big')).hex()
+    new_working_minutes_int = ask_for_values(menu_parameters)
+    new_working_minutes_hex = bytearray(new_working_minutes_int.to_bytes(1, 'big')).hex()
     # this inserts the new value in minutes
-    string_to_change = (device_commands['set_working_period'])
-    data_for_checksum = string_to_change[:12] + working_minutes + string_to_change[14:]
-    new_checksum = checksum_byte_calculator(data_for_checksum)
-    new_working_period = data_for_checksum[:-5] + new_checksum + data_for_checksum[-3:]
-    send_query_to_sensor(new_working_period)
+    writen_in_sensor = write_bytes_to_device(new_working_minutes_hex)
+    condition = check_data_consistency(writen_in_sensor, new_working_minutes_hex)
+    # This needs to be changed
+    # Checks if what has been written is the same that what has been sent
+    if condition is not True:
+        print('There is an error in the working period. Please try again!')
+    device01.set_working_period(new_working_minutes_int)
     print()
     print('* WORKING PERIOD CHANGED *')
     show_device_parameters()
 
-    
+
+def write_bytes_to_device(data):
+    """Assumes data to be a hex in for of string.
+    Inserts bytes in -byte position 3- of a command.
+    Then calculates checksum.
+    Returns the changed command to send to device."""
+    string_to_change = (device_commands.set_working_status_command())
+    data_for_checksum_calculation = string_to_change[:12] + data + string_to_change[14:]
+    new_checksum = checksum_byte_calculator(data_for_checksum_calculation)
+    new_command = data_for_checksum_calculation[:-5] + new_checksum + data_for_checksum_calculation[-3:]
+    sensor_answer = send_query_to_sensor(new_command)
+    return sensor_answer
+
+
+def check_data_consistency(data1, data2):
+    """Assumes data1 and data2 of any type.
+    Returns True if they are equal, False otherwise"""
+    if data1 == data2:
+        return True
+    return False
+
+
 def change_working_mode():
     """Changes the working mode.
     Returns active mode or query mode."""
@@ -234,19 +251,25 @@ def change_working_mode():
     main_menu()
 
 
+def check_work_status():
+    """Sends command to device to check status.
+    Updates status attribute in object"""
+    # working status can be changed by machine so we need to check anytime we show parameters
+    read_line = send_query_to_sensor(device_commands.query_status_command())
+    device01.query_device_status(read_line)
+
+
 def show_device_parameters():
     """Shows the main parameters of the device"""
-    working_mode = device01.query_working_mode()
-    working_period = device01.query_working_period(send_query_to_sensor(device_commands['query_work_period']))
-    device_firmware = device01.get_firmware(send_query_to_sensor(device_commands['query_firmware']))
-    device_status = device01.query_device_status(send_query_to_sensor(device_commands['query_status']))
-    print('---- SENSOR PARAMETERS ----')
+    check_work_status()
+    print()
+    print('------------ SENSOR PARAMETERS ------------')
     print(device01.__str__())
-    print('Current mode is', working_mode)
-    print('Working period set to', working_period)
-    print('Firmware version: ', device_firmware)
-    print('The device is currently', device_status)
-    print('-' * 20)
+    print('Current mode is', device01.get_work_mode())
+    print('Working period set to', device01.get_work_period(), 'minute(s)')
+    print('Firmware version: ', device01.get_firmware())
+    print('The device is currently', device01.get_work_status())
+    print('-' * 42)
     main_menu()
 
 
@@ -255,7 +278,7 @@ def main_menu():
     Redirects to specific functions."""
     # WE CREATE A DICTIONARY FOR THE MAIN MENU
     menu_parameters = {'min_value': 1, 'max_value': 4,
-                       'menu_items': ('**** MAIN MENU ****', '1 - Read AQI values', '2 - Change working period',
+                       'menu_items': ('*************** MAIN MENU ***************', '1 - Read AQI values', '2 - Change working period',
                                        '3 - Change working mode', '4 - Exit'),
                        'menu_question': 'Choose an option between 1 and 4: '}
     choose_action = ask_for_values(menu_parameters)
@@ -277,17 +300,26 @@ def main_menu():
         sys.exit()
 
 
-# Those are the main commands we are using to send to the device in order to get/send information
-device_commands={'query_work_mode':'AA B4 02 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 AB',
-                 'query_work_period': 'AA B4 08 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 06 AB',
-                 'query_firmware': 'AA B4 07 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 05 AB',
-                 'query_status': 'AA B4 06 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 04 AB',
-                 'set_working_period': 'AA B4 08 01 XX 00 00 00 00 00 00 00 00 00 00 FF FF 00 AB'}
-# the XX in the 'set_working_period' is there because this value in the dictionary is going to be changed
-# this is the place where you put new value for the working period in minutes (from 0 to 30)
-
 # Query the current device ID, active mode or query mode
-curr_mode = send_query_to_sensor(device_commands['query_work_mode'])
-# instantiates current device
-device01 = SDS011(curr_mode)
-show_device_parameters()
+# sets basic information for the current device:
+def initializes_device(read_line):
+    """Creates object of class SDS011Device.
+    fot the current sensor."""
+    # gets the working mode info:
+    check_work_status()
+    device01.query_working_mode(read_line)
+    read_line = send_query_to_sensor(device_commands.query_work_period_command())
+    device01.query_working_period(read_line)
+    read_line = send_query_to_sensor(device_commands.query_firmware_command())
+    device01.query_device_firmware(read_line)
+    show_device_parameters()
+
+
+# STARTS the program
+# US - EPA values
+us_epa_table = EPATable()
+device_commands = SDS011()
+working_mode = send_query_to_sensor(device_commands.query_work_mode_command())
+device_id = str(working_mode[-4] + working_mode[-3])
+device01 = SDS011Device(device_id)
+initializes_device(working_mode)
