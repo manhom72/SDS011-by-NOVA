@@ -280,7 +280,7 @@ def main_menu():
 # Those are the main commands we are using to send to the device in order to get/send information
 device_commands={'query_work_mode':'AA B4 02 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 00 AB',
                  'query_work_period': 'AA B4 08 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 06 AB',
-                 'query_firmware': 'AA B4 06 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 04 AB',
+                 'query_firmware': 'AA B4 07 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 05 AB',
                  'query_status': 'AA B4 06 00 00 00 00 00 00 00 00 00 00 00 00 FF FF 04 AB',
                  'set_working_period': 'AA B4 08 01 XX 00 00 00 00 00 00 00 00 00 00 FF FF 00 AB'}
 # the XX in the 'set_working_period' is there because this value in the dictionary is going to be changed
