@@ -29,11 +29,12 @@ At the time of this update, July 2020 16th, this project has only three files:
   - SDS011_2_0.py: this is the main program, it reads the data using UART protocol and gives values of US - EPA air quality index.
   - deviceC.py: includes classes used by the main program
   - README file.
+  - LICENCE file.
 
 ## Technologies
-* The project is created with Python 3,7 version
+* The project was created with Python 3,7 version, so I do not know if it actually runs well with previous versions.
 * CH340 chip based USB adaptor. CH340 drivers might be installed before running the program. Make sure you install an updated version of the drivers.
-* You also need pySerial. You can find information here: https://pythonhosted.org/pyserial/
+* You also need pySerial version 3.4 or later. You can find information here: https://pythonhosted.org/pyserial/
 
 ## Setup
 To install the program, you just need to copy or download the files to a computer that runs a 3.7 version of Python or higher.
@@ -54,4 +55,7 @@ It is set by default for 3 readings. Depending on the working mode of the sensor
 
 ## Future updates
 In future updates I would create a framework with Flask and Jinja2, so the interaction with the program by the user can be done with a browser.
+A module to plot the results recorded in the file is also under developement.
+
+Thanks!
 
