@@ -6,7 +6,7 @@
 import serial
 import sys
 from datetime import datetime
-from home_class import SDS011, SDS011Device, EPATable
+from deviceC import SDS011, SDS011Device, EPATable
 
 # SET UP VARIABLES --- VARIABLES TO CHANGE ---
 # this is the name of the port where the CH340 is connected
